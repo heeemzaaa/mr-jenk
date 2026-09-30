@@ -236,6 +236,7 @@ pipeline {
                         checkout scm
                         dir('api-gateway') {
                             sh '''
+                                rm -f src/main/resources/keystore.p12
                                 keytool -genkeypair \
                                   -alias gateway \
                                   -keyalg RSA -keysize 2048 \
