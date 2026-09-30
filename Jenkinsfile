@@ -220,9 +220,6 @@ pipeline {
                     }
                 }
                 stage('api-gateway') {
-                    // Needs a keystore on the classpath before Spring can even
-                    // start — SSL_KEYSTORE_PASSWORD has no default, unlike the
-                    // other services' env vars
                     agent {
                         docker {
                             image "${BACKEND_BUILD_IMAGE}"
