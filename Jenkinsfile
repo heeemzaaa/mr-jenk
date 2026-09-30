@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         BACKEND_BUILD_IMAGE = 'maven:3.9-eclipse-temurin-17'
+        FRONTEND_BUILD_IMAGE = 'node:20-alpine'
         MONGO_IMAGE         = 'mongo:7'
         CI_NETWORK_PREFIX      = "backend-ci-${BUILD_NUMBER}"
         MONGO_CONTAINER_PREFIX = "mongo-${BUILD_NUMBER}"
@@ -81,6 +82,21 @@ pipeline {
                             sh 'mvn -B -DskipTests clean package'
                         }
                     }
+                }
+            }
+        }
+
+        stage('Build: Frontend') {
+            agent {
+                docker {
+                    image "${FRONTEND_BUILD_IMAGE}"
+                }
+            }
+            steps {
+                checkout scm
+                dir('frontend') {
+                    sh 'npm ci'
+                    sh 'npm run build'
                 }
             }
         }
@@ -243,3 +259,4 @@ pipeline {
         }
     }
 }
+    
