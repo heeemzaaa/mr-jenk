@@ -1,0 +1,41 @@
+<div class="app-carousel" [style.height]="height()">
+  @if (activeImage(); as image) {
+    <img [src]="image" [alt]="alt()" class="app-carousel-image" />
+  }
+
+  @if (hasMultiple()) {
+    <button
+      type="button"
+      class="app-carousel-arrow app-carousel-arrow-prev"
+      (click)="$event.stopPropagation(); prev()"
+      aria-label="Previous image"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+        <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
+      </svg>
+    </button>
+
+    <button
+      type="button"
+      class="app-carousel-arrow app-carousel-arrow-next"
+      (click)="$event.stopPropagation(); next()"
+      aria-label="Next image"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+        <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/>
+      </svg>
+    </button>
+
+    <div class="app-carousel-dots">
+      @for (slide of slides(); track $index; let i = $index) {
+        <button
+          type="button"
+          class="app-carousel-dot"
+          [class.active]="i === currentIndex()"
+          (click)="$event.stopPropagation(); goTo(i)"
+          [attr.aria-label]="'Go to image ' + (i + 1)"
+        ></button>
+      }
+    </div>
+  }
+</div>

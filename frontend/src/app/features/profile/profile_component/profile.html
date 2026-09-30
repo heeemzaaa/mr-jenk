@@ -1,0 +1,167 @@
+<div class="profile-page">
+  <div class="profile-shell">
+    <!-- HEADER -->
+    <div class="profile-shell-header">
+      <h1>My Profile</h1>
+
+      <p>Manage your personal information and profile settings.</p>
+    </div>
+
+    @if (loading()) {
+      <!-- LOADING -->
+      <div class="state-loading">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden"> Loading… </span>
+        </div>
+      </div>
+    } @else {
+      <!-- IDENTITY -->
+      <div class="identity-band">
+        <div class="identity-avatar">
+          @if (avatar()) {
+            <img [src]="avatar()" [alt]="profile()?.name || 'Profile picture'" class="avatar-img" />
+          } @else {
+            <div class="avatar-fallback" aria-label="Profile initials">
+              {{ profile()?.name?.charAt(0)?.toUpperCase() || '?' }}
+            </div>
+          }
+        </div>
+
+        <div class="identity-meta">
+          <h2 class="identity-name">
+            {{ profile()?.name }}
+          </h2>
+
+          <p class="identity-email">
+            {{ profile()?.email }}
+          </p>
+
+          @if (role() === 'CLIENT') {
+            <span class="badge role-client"> Client </span>
+          }
+
+          @if (role() === 'SELLER') {
+            <span class="badge role-seller"> Seller </span>
+          }
+        </div>
+      </div>
+
+      <!-- SUCCESS MESSAGE -->
+      @if (successMessage()) {
+        <div class="alert alert-success" role="alert">
+          {{ successMessage() }}
+        </div>
+      }
+
+      <!-- ERROR MESSAGE -->
+      @if (errorMessage()) {
+        <div class="alert alert-danger" role="alert">
+          {{ errorMessage() }}
+        </div>
+      }
+
+      <!-- FORM -->
+      <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="profile-form">
+        <!-- NAME -->
+        <div class="field-row">
+          <label for="profileName" class="field-label"> Name </label>
+
+          <div class="field-control">
+            <input
+              id="profileName"
+              type="text"
+              formControlName="name"
+              class="form-control"
+              [class.is-invalid]="nameControl.invalid && nameControl.touched"
+              placeholder="Enter your name"
+            />
+
+            @if (nameControl.invalid && nameControl.touched) {
+              <div class="field-hint field-hint-error">
+                @if (nameControl.hasError('required')) {
+                  Name is required.
+
+                } @else if (nameControl.hasError('minlength')) {
+                  Name must contain at least 3 characters.
+
+                } @else if (nameControl.hasError('maxlength')) {
+                  Name cannot contain more than 100 characters.
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- EMAIL -->
+        <div class="field-row">
+          <label for="profileEmail" class="field-label"> Email </label>
+
+          <div class="field-control">
+            <input
+              id="profileEmail"
+              type="email"
+              formControlName="email"
+              class="form-control"
+              [class.is-invalid]="emailControl.invalid && emailControl.touched"
+              placeholder="name@example.com"
+            />
+
+            @if (emailControl.invalid && emailControl.touched) {
+              <div class="field-hint field-hint-error">
+                @if (emailControl.hasError('required')) {
+                  Email is required.
+
+                } @else if (emailControl.hasError('email')) {
+                  Please enter a valid email address.
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- ROLE -->
+        <div class="field-row">
+          <label for="profileRole" class="field-label"> Account type </label>
+
+          <div class="field-control">
+            <input id="profileRole" type="text" class="form-control" [value]="role()" disabled />
+
+            <div class="field-hint">Your account type can't be changed.</div>
+          </div>
+        </div>
+
+        <!-- PROFILE PICTURE -->
+        <div class="field-row">
+          <label class="field-label"> Profile picture </label>
+
+          <div class="field-control">
+            <app-upload
+              [targetType]="'PROFILE'"
+              [targetId]="userId"
+              [maxFiles]="1"
+              [initialImages]="avatar()"
+              [name]="profile()?.name ?? null"
+            ></app-upload>
+          </div>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline-primary" (click)="cancelChanges()">
+            Cancel
+          </button>
+
+          <button type="submit" class="btn btn-primary" [disabled]="saving()">
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+
+              Saving…
+            } @else {
+              Save changes
+            }
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+</div>

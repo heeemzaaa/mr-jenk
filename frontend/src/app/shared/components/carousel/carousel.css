@@ -1,0 +1,90 @@
+:host {
+  display: block;
+}
+
+.app-carousel {
+  position: relative;
+
+  width: 100%;
+
+  overflow: hidden;
+
+  background: color-mix(in srgb, var(--color-text, #000) 6%, transparent);
+}
+
+.app-carousel-image {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  /* Show the whole image (e.g. tall 9:16 shots) letterboxed on the sides,
+     instead of cover's crop-to-fill zoom. */
+  object-fit: contain;
+}
+
+.app-carousel-arrow {
+  position: absolute;
+  top: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2rem;
+  height: 2rem;
+
+  transform: translateY(-50%);
+
+  border: none;
+  border-radius: 50%;
+
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 1.1rem;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition: background 0.2s ease;
+}
+
+.app-carousel-arrow:hover {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.app-carousel-arrow-prev {
+  left: 0.5rem;
+}
+
+.app-carousel-arrow-next {
+  right: 0.5rem;
+}
+
+.app-carousel-dots {
+  position: absolute;
+  right: 0;
+  bottom: 0.5rem;
+  left: 0;
+
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.app-carousel-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  padding: 0;
+
+  border: none;
+  border-radius: 50%;
+
+  background: rgba(255, 255, 255, 0.6);
+
+  cursor: pointer;
+}
+
+.app-carousel-dot.active {
+  background: #fff;
+}

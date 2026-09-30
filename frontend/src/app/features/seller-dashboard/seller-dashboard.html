@@ -1,0 +1,91 @@
+<div class="container-fluid py-5 px-4 px-lg-5">
+  <div class="row g-5">
+    <div class="col-lg-7">
+      <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+        <h2 class="mb-0 text-secondary">Listings ({{ totalElements() }})</h2>
+        <button
+          type="button"
+          class="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2"
+          (click)="onCreateClick()"
+        >
+          <i class="bi bi-plus-lg"></i>
+          Create New Product
+        </button>
+      </div>
+
+      @if (loading()) {
+        <app-loading-spinner label="Loading your products…" />
+      } @else if (products().length === 0) {
+        <app-empty-state
+          message="No products yet."
+          actionLabel="Create New Product"
+          (action)="onCreateClick()"
+        />
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr class="text-secondary">
+                <th scope="col" class="border-end fw-normal">ID</th>
+                <th scope="col" class="border-end fw-normal">name</th>
+                <th scope="col" class="border-end fw-normal">price</th>
+                <th scope="col" class="border-end fw-normal">quantity</th>
+                <th scope="col" class="fw-normal">actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (product of products(); track product.id) {
+                <tr
+                  app-product-table-row
+                  [product]="product"
+                  (edit)="onEditClick($event)"
+                  (delete)="onDeleteClick($event)"
+                ></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="Product pages">
+          <button
+            type="button"
+            class="btn btn-outline-primary btn-sm"
+            [disabled]="!hasPrevious()"
+            (click)="onPreviousPage()"
+          >
+            Previous
+          </button>
+          <span class="text-secondary small">Page {{ currentPage() + 1 }}</span>
+          <button
+            type="button"
+            class="btn btn-outline-primary btn-sm"
+            [disabled]="!hasNext()"
+            (click)="onNextPage()"
+          >
+            Next
+          </button>
+        </nav>
+      }
+    </div>
+
+    <div class="col-lg-5">
+      <div class="bg-white border rounded-4 shadow-sm p-4 p-lg-5">
+        <app-product-form
+          [editingProduct]="editingProduct()"
+          [focusTrigger]="focusTrigger()"
+          (save)="onFormSave($event)"
+        />
+      </div>
+    </div>
+  </div>
+
+  @if (productPendingDelete(); as product) {
+    <app-confirmation-modal
+      title="Delete product?"
+      [message]="'Delete \'' + product.name + '\'? This can\'t be undone.'"
+      confirmLabel="Delete"
+      (confirmed)="onConfirmDelete()"
+      (cancelled)="onCancelDelete()"
+    />
+  }
+</div>

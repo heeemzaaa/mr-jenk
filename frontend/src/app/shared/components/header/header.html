@@ -1,0 +1,61 @@
+<header>
+  <nav class="navbar navbar-expand-lg navbar-brand-gradient sticky-top shadow-sm" data-bs-theme="dark">
+    <div class="container-fluid px-3 px-md-4 px-lg-5">
+      <a class="navbar-brand d-flex align-items-center gap-2" routerLink="/">
+        <span class="bg-white rounded-3 d-inline-flex align-items-center justify-content-center p-1">
+          <img src="assets/vendify-mark.png" width="26" height="20" alt="" class="d-block" />
+        </span>
+        <span class="fw-bold fs-5">Vendify</span>
+      </a>
+
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#mainNav"
+        aria-controls="mainNav"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNav">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-lg-2">
+          <li class="nav-item">
+            <a
+              class="nav-link"
+              routerLink="/"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: true }"
+            >
+              Home
+            </a>
+          </li>
+          @if (isSeller()) {
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/dashboard" routerLinkActive="active">
+                Dashboard
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/profile" routerLinkActive="active">
+                Profile
+              </a>
+            </li>
+          }
+        </ul>
+
+        <div class="d-flex">
+          @if (!isLoggedIn()) {
+            <a class="btn btn-light text-primary fw-semibold btn-sm px-3" routerLink="/login">Log in</a>
+          } @else {
+            <button type="button" class="btn btn-outline-light btn-sm px-3" (click)="logout()">
+              Logout
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>

@@ -1,0 +1,473 @@
+/* =========================================================
+   PROFILE PAGE
+   ========================================================= */
+
+.profile-page {
+  min-height: 100vh;
+  padding: 3rem 1.5rem 4rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.profile-shell {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.profile-shell-header {
+  margin-bottom: 2rem;
+}
+
+.profile-shell-header h1 {
+  margin: 0 0 0.4rem;
+  font-size: 1.8rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.profile-shell-header p {
+  margin: 0;
+  max-width: 600px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   IDENTITY
+   ========================================================= */
+
+.identity-band {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+
+  padding: 1.5rem;
+  margin-bottom: 1.75rem;
+
+  border: 1px solid color-mix(in srgb, var(--color-accent) 18%, var(--color-border));
+
+  border-radius: 1rem;
+
+  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-bg));
+}
+
+/* =========================================================
+   MAIN AVATAR
+   ========================================================= */
+
+.identity-avatar {
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
+}
+
+.avatar-img,
+.avatar-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.avatar-img {
+  display: block;
+  object-fit: cover;
+
+  border: 3px solid var(--color-bg);
+
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+.avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--color-accent);
+  color: var(--color-bg);
+
+  font-size: 2rem;
+  font-weight: 700;
+
+  border: 3px solid var(--color-bg);
+
+  box-shadow: 0 0 0 2px var(--color-accent);
+
+  user-select: none;
+}
+
+/* =========================================================
+   IDENTITY INFO
+   ========================================================= */
+
+.identity-meta {
+  min-width: 0;
+}
+
+.identity-name {
+  margin: 0 0 0.25rem;
+
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity-email {
+  margin: 0 0 0.7rem;
+
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+
+  font-size: 0.92rem;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   ROLE BADGES
+   ========================================================= */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 0.35rem 0.7rem;
+
+  border-radius: 999px;
+
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.role-client,
+.role-seller {
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg));
+
+  color: var(--color-accent);
+
+  border: 1px solid color-mix(in srgb, var(--color-accent) 20%, var(--color-border));
+}
+
+/* =========================================================
+   ALERTS
+   ========================================================= */
+
+.alert {
+  margin-bottom: 1.5rem;
+
+  border-radius: 0.75rem;
+
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   FORM
+   ========================================================= */
+
+.profile-form {
+  width: 100%;
+}
+
+/* =========================================================
+   FIELD ROW
+   ========================================================= */
+
+.field-row {
+  display: grid;
+
+  grid-template-columns:
+    150px
+    minmax(0, 1fr);
+
+  gap: 1.5rem;
+
+  padding: 1.35rem 0;
+
+  border-bottom: 1px solid var(--color-border);
+}
+
+.field-row:first-child {
+  padding-top: 0;
+}
+
+.field-label {
+  padding-top: 0.6rem;
+  margin: 0;
+
+  font-size: 0.9rem;
+  font-weight: 500;
+
+  color: var(--color-text);
+}
+
+.field-control {
+  min-width: 0;
+}
+
+/* =========================================================
+   INPUTS
+   ========================================================= */
+
+.form-control {
+  width: 100%;
+  min-height: 44px;
+
+  padding: 0.65rem 0.8rem;
+
+  border: 1px solid var(--color-border);
+  border-radius: 0.65rem;
+
+  background: var(--color-bg);
+  color: var(--color-text);
+
+  font-size: 0.92rem;
+
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.form-control:hover {
+  border-color: color-mix(in srgb, var(--color-text) 25%, var(--color-border));
+}
+
+.form-control:focus {
+  border-color: var(--color-accent);
+
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+.form-control:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+
+  background: color-mix(in srgb, var(--color-text) 4%, var(--color-bg));
+}
+
+/* =========================================================
+   VALIDATION
+   ========================================================= */
+
+.form-control.is-invalid {
+  border-color: var(--color-error);
+}
+
+.form-control.is-invalid:focus {
+  border-color: var(--color-error);
+
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-error) 12%, transparent);
+}
+
+.field-hint {
+  margin-top: 0.4rem;
+
+  font-size: 0.8rem;
+  line-height: 1.4;
+
+  color: color-mix(in srgb, var(--color-text) 50%, transparent);
+}
+
+.field-hint-error {
+  color: var(--color-error);
+}
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+
+  padding-top: 1.5rem;
+}
+
+.form-actions .btn {
+  min-height: 42px;
+
+  padding: 0.6rem 1.1rem;
+
+  border-radius: 0.65rem;
+
+  font-size: 0.9rem;
+  font-weight: 500;
+
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.form-actions .btn:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.form-actions .btn:not(:disabled):active {
+  transform: translateY(0);
+}
+
+.form-actions .btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.state-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 260px;
+}
+
+.state-loading .spinner-border {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* =========================================================
+   RESPONSIVE — TABLET
+   ========================================================= */
+
+@media (max-width: 767.98px) {
+  .profile-page {
+    padding: 2.5rem 1.25rem 3rem;
+  }
+
+  .profile-shell {
+    max-width: 100%;
+  }
+
+  .field-row {
+    grid-template-columns:
+      130px
+      minmax(0, 1fr);
+
+    gap: 1rem;
+  }
+}
+
+/* =========================================================
+   RESPONSIVE — MOBILE
+   ========================================================= */
+
+@media (max-width: 575.98px) {
+  .profile-page {
+    padding: 1.5rem 1rem 2.5rem;
+  }
+
+  .profile-shell-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .profile-shell-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .profile-shell-header p {
+    font-size: 0.88rem;
+  }
+
+  /* Identity */
+
+  .identity-band {
+    flex-direction: column;
+
+    text-align: center;
+
+    gap: 1rem;
+
+    padding: 1.35rem;
+
+    border-radius: 0.9rem;
+  }
+
+  .identity-name {
+    font-size: 1.2rem;
+
+    white-space: normal;
+  }
+
+  .identity-email {
+    font-size: 0.85rem;
+
+    white-space: normal;
+
+    overflow-wrap: anywhere;
+  }
+
+  /* Fields */
+
+  .field-row {
+    grid-template-columns: 1fr;
+
+    gap: 0.45rem;
+
+    padding: 1.15rem 0;
+  }
+
+  .field-row:first-child {
+    padding-top: 0;
+  }
+
+  .field-label {
+    padding-top: 0;
+
+    font-size: 0.85rem;
+  }
+
+  /* Buttons */
+
+  .form-actions {
+    flex-direction: column-reverse;
+
+    gap: 0.6rem;
+
+    padding-top: 1.25rem;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   VERY SMALL SCREENS
+   ========================================================= */
+
+@media (max-width: 360px) {
+  .profile-page {
+    padding-inline: 0.75rem;
+  }
+
+  .identity-band {
+    padding: 1.1rem;
+  }
+
+  .identity-avatar {
+    width: 76px;
+    height: 76px;
+  }
+
+}
