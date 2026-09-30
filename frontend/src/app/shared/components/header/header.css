@@ -1,0 +1,14 @@
+:host {
+  display: block;
+}
+
+/* Bootstrap has no gradient utility, so the brand background is the one
+   thing here that genuinely needs custom CSS. Text/link colors are handled
+   by Bootstrap's own data-bs-theme="dark" navbar variables. */
+.navbar-brand-gradient {
+  background: linear-gradient(135deg, var(--brand-blue), var(--brand-green));
+}
+
+.nav-link.active {
+  font-weight: 600;
+}

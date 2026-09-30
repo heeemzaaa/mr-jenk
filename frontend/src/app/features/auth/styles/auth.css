@@ -1,0 +1,13 @@
+/* Bootstrap has no gradient utility, so the brand panel background is the
+   one thing here that genuinely needs custom CSS. Everything else in the
+   auth pages is plain Bootstrap. */
+.auth-brand-panel {
+  background: linear-gradient(135deg, var(--brand-blue), var(--brand-green));
+}
+
+/* Bootstrap's `.invalid-feedback` only auto-shows via a `~` sibling selector,
+   which breaks once the input is wrapped in an `.input-group` (password
+   field). Forcing it visible here is simpler than fighting the selector. */
+.auth-password-group ~ .invalid-feedback {
+  display: block;
+}

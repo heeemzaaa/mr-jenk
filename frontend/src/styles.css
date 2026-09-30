@@ -1,0 +1,109 @@
+:root {
+  /* Vendify design tokens, sampled from the brand logo */
+  --brand-blue: #3fa9dc;
+  --brand-green: #1fae86;
+  --brand-green-hover: #158a68;
+  --brand-orange: #f5a623;
+  --brand-ink: #454b58;
+
+  --color-bg: #f7f9fb;
+  --color-text: #23262f;
+  --color-muted: #6c7280;
+  --color-placeholder: #9aa1ae;
+  --color-border: #e3e7ed;
+  --color-accent: var(--brand-green);
+  --color-accent-hover: var(--brand-green-hover);
+  --color-accent-rgb: 31, 174, 134;
+  --color-focus: rgba(31, 174, 134, 0.25);
+  --color-danger: #dc3545;
+  --color-error: var(--color-danger);
+
+  /* Bootstrap 5 CSS variable overrides */
+  --bs-body-bg: var(--color-bg);
+  --bs-body-color: var(--color-text);
+  --bs-primary: var(--color-accent);
+  --bs-primary-rgb: var(--color-accent-rgb);
+  --bs-border-color: var(--color-border);
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* Bootstrap's own .btn-primary/.btn-outline-primary bake in a literal blue
+   hex for every state instead of referencing --bs-primary, so each state
+   needs an explicit override to actually pick up the brand color. */
+.btn-primary {
+  --bs-btn-bg: var(--color-accent);
+  --bs-btn-border-color: var(--color-accent);
+  --bs-btn-hover-bg: var(--color-accent-hover);
+  --bs-btn-hover-border-color: var(--color-accent-hover);
+  --bs-btn-active-bg: var(--color-accent-hover);
+  --bs-btn-active-border-color: var(--color-accent-hover);
+  --bs-btn-focus-shadow-rgb: var(--color-accent-rgb);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--color-accent);
+  --bs-btn-border-color: var(--color-accent);
+  --bs-btn-hover-bg: var(--color-accent);
+  --bs-btn-hover-border-color: var(--color-accent);
+  --bs-btn-active-bg: var(--color-accent);
+  --bs-btn-active-border-color: var(--color-accent);
+  --bs-btn-focus-shadow-rgb: var(--color-accent-rgb);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 0.25rem var(--color-focus);
+}
+
+.form-check-input:checked {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.form-check-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 0.25rem var(--color-focus);
+}
+
+.role-client {
+  background-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.role-seller {
+  background-color: var(--color-accent);
+  color: #fafaf9;
+}
+
+/* Product cards (product list): Bootstrap has no hover-lift or multi-line
+   text-truncate utility, so both are necessarily custom. */
+.product-card {
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.product-card:hover {
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-3px);
+}
+
+.product-card-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-card {
+    transition: none;
+  }
+
+  .product-card:hover {
+    transform: none;
+  }
+}

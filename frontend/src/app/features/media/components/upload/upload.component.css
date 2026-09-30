@@ -1,0 +1,202 @@
+/* =========================================================
+   AVATAR UPLOAD
+   ========================================================= */
+
+.avatar-upload {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  padding: 1rem;
+
+  border: 1px dashed var(--color-border);
+  border-radius: 0.8rem;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.avatar-upload:hover {
+  border-color: var(--color-accent);
+
+  background: color-mix(in srgb, var(--color-accent) 3%, var(--color-bg));
+}
+
+.avatar-upload:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.upload-input {
+  display: none;
+}
+
+/* =========================================================
+   SMALL AVATAR
+   ========================================================= */
+
+.avatar-upload-preview {
+  width: 72px;
+  height: 72px;
+
+  flex-shrink: 0;
+}
+
+.avatar-upload-img,
+.avatar-upload-fallback {
+  width: 100%;
+  height: 100%;
+
+  border-radius: 50%;
+}
+
+.avatar-upload-img {
+  display: block;
+
+  object-fit: cover;
+
+  border: 2px solid var(--color-border);
+}
+
+.avatar-upload-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--color-accent);
+  color: var(--color-bg);
+
+  font-size: 1.6rem;
+  font-weight: 700;
+
+  border: 2px solid var(--color-border);
+
+  user-select: none;
+}
+
+.avatar-upload-text {
+  min-width: 0;
+}
+
+.avatar-upload-title {
+  margin-bottom: 0.2rem;
+
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.avatar-upload-subtitle {
+  color: color-mix(in srgb, var(--color-text) 50%, transparent);
+
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+/* =========================================================
+   GALLERY UPLOAD
+   ========================================================= */
+
+.gallery-upload {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+
+  margin-bottom: 1rem;
+}
+
+.gallery-item {
+  position: relative;
+
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
+}
+
+.gallery-item-img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+
+  border: 1px solid var(--color-border);
+  border-radius: 0.6rem;
+}
+
+.gallery-item-remove {
+  position: absolute;
+  top: -0.4rem;
+  right: -0.4rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 1.4rem;
+  height: 1.4rem;
+
+  border: none;
+  border-radius: 50%;
+
+  background: var(--color-error);
+  color: var(--color-bg);
+
+  font-size: 0.95rem;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+/* =========================================================
+   HINTS
+   ========================================================= */
+
+.upload-hint {
+  margin-top: 0.6rem;
+
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.upload-hint-error {
+  color: var(--color-error);
+
+  white-space: pre-line;
+}
+
+/* =========================================================
+   RESPONSIVE — MOBILE
+   ========================================================= */
+
+@media (max-width: 575.98px) {
+  .avatar-upload {
+    flex-direction: column;
+
+    text-align: center;
+
+    padding: 1.25rem;
+  }
+
+  .avatar-upload-text {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   VERY SMALL SCREENS
+   ========================================================= */
+
+@media (max-width: 360px) {
+  .avatar-upload-preview {
+    width: 64px;
+    height: 64px;
+  }
+
+  .avatar-upload-fallback {
+    font-size: 1.4rem;
+  }
+}

@@ -1,0 +1,59 @@
+<div class="upload-root">
+  @if (!isSingle() && previews().length) {
+  <div class="gallery-upload">
+    @for (preview of previews(); track preview.url; let i = $index) {
+    <div class="gallery-item">
+      <img [src]="preview.url" alt="Selected image" class="gallery-item-img" />
+
+      <button type="button" class="gallery-item-remove" (click)="removeImage(i)" aria-label="Remove image">
+        &times;
+      </button>
+    </div>
+    }
+  </div>
+  }
+
+  @if (isSingle() || canAddMore() || uploading()) {
+  <div class="avatar-upload" role="button" tabindex="0" (click)="fileInput.click()" (keydown.enter)="fileInput.click()"
+    (keydown.space)="fileInput.click()">
+    <div class="avatar-upload-preview">
+      @if (isSingle() && avatarUrl) {
+      <img [src]="avatarUrl" [alt]="name || label" class="avatar-upload-img" />
+      } @else {
+      <div class="avatar-upload-fallback" aria-label="Upload">
+        {{ isSingle() ? (name ? name.charAt(0).toUpperCase() : '?') : '+' }}
+      </div>
+      }
+    </div>
+
+    <div class="avatar-upload-text">
+      <div class="avatar-upload-title">{{ label }}</div>
+
+      <div class="avatar-upload-subtitle">
+        @if (uploading()) {
+          Uploading…
+        } @else {
+          Click to choose an image from your computer.
+        }
+      </div>
+    </div>
+  </div>
+  }
+
+  @if (errorMessage()) {
+  <div class="upload-hint upload-hint-error">{{ errorMessage() }}</div>
+  }
+
+  <input #fileInput type="file" accept="image/*" [multiple]="!isSingle()" class="upload-input"
+    (click)="$event.stopPropagation()" (change)="onFilesPicked($event)" />
+
+  @if (pendingDeleteIndex() !== null) {
+    <app-confirmation-modal
+      title="Remove image?"
+      message="This image will be permanently removed."
+      confirmLabel="Remove"
+      (confirmed)="confirmRemove()"
+      (cancelled)="cancelRemove()"
+    />
+  }
+</div>

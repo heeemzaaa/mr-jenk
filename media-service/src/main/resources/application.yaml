@@ -1,0 +1,44 @@
+server:
+  port: 8083
+  tomcat:
+    max-swallow-size: 15MB
+    max-http-form-post-size: 15MB
+
+cloudinary:
+  url: ${CLOUDINARY_URL:}
+
+spring:
+  application:
+    name: media-service
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 15MB
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://mongodb:27017/media_db}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,metrics,info"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://discovery-server:8761/eureka}
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+
+  
+resilience4j:
+  circuitbreaker:
+    instances:
+      productService:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 5s
+        permittedNumberOfCallsInHalfOpenState: 3
+
