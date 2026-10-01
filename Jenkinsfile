@@ -293,16 +293,26 @@ pipeline {
     }
 
     post {
+        success {
+            mail to: 'hamzaelkhawlani00@gmail.com',
+                 subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                 body: "Good news! The build and deployment succeeded.\n\nJob: ${env.JOB_NAME}\nBuild: #${env.BUILD_NUMBER}\nDetails: ${env.BUILD_URL}"
+        }
         failure {
+            mail to: 'hamzaelkhawlani00@gmail.com',
+                 subject: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                 body: "The build or deployment failed.\n\nJob: ${env.JOB_NAME}\nBuild: #${env.BUILD_NUMBER}\nDetails: ${env.BUILD_URL}"
             script {
                 if (env.PREVIOUS_SHA) {
-                    withCredentials([
-                        usernamePassword(credentialsId: 'deploy-server-ssh', usernameVariable: 'SSH_USER', passwordVariable: 'SSH_PASS'),
-                        string(credentialsId: 'deploy-server-host', variable: 'DEPLOY_HOST')
-                    ]) {
-                        sh '''
-                            sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no "$SSH_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && git reset --hard $PREVIOUS_SHA && docker compose up --build -d"
-                        '''
+                    node {
+                        withCredentials([
+                            usernamePassword(credentialsId: 'deploy-server-ssh', usernameVariable: 'SSH_USER', passwordVariable: 'SSH_PASS'),
+                            string(credentialsId: 'deploy-server-host', variable: 'DEPLOY_HOST')
+                        ]) {
+                            sh '''
+                                sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no "$SSH_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && git reset --hard $PREVIOUS_SHA && docker compose up --build -d"
+                            '''
+                        }
                     }
                 }
             }
