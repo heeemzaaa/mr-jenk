@@ -7,34 +7,31 @@ import { sellerGuard } from './seller.guard';
 
 describe('sellerGuard', () => {
   let authService: AuthService;
-  let router: Router;
+  const createUrlTree = vi.fn();
 
   beforeEach(() => {
+    createUrlTree.mockReset();
+
     TestBed.configureTestingModule({
       providers: [
         AuthService,
         {
           provide: Router,
-          useValue: {
-            createUrlTree: vi.fn(),
-          },
+          useValue: { createUrlTree },
         },
       ],
     });
 
     authService = TestBed.inject(AuthService);
-    router = TestBed.inject(Router);
   });
 
   it('should redirect unauthenticated user to home', () => {
-    const homeUrlTree = {} as any;
-
-    vi.spyOn(router, 'createUrlTree').mockReturnValue(homeUrlTree);
+    const homeUrlTree = {};
+    createUrlTree.mockReturnValue(homeUrlTree);
 
     const result = TestBed.runInInjectionContext(() => sellerGuard({} as any, {} as any));
 
-    expect(router.createUrlTree).toHaveBeenCalledWith(['/']);
-
+    expect(createUrlTree).toHaveBeenCalledWith(['/']);
     expect(result).toBe(homeUrlTree);
   });
 
@@ -50,9 +47,8 @@ describe('sellerGuard', () => {
   });
 
   it('should redirect CLIENT user to home', () => {
-    const homeUrlTree = {} as any;
-
-    vi.spyOn(router, 'createUrlTree').mockReturnValue(homeUrlTree);
+    const homeUrlTree = {};
+    createUrlTree.mockReturnValue(homeUrlTree);
 
     authService['userSignal'].set({
       id: '1',
@@ -61,8 +57,7 @@ describe('sellerGuard', () => {
 
     const result = TestBed.runInInjectionContext(() => sellerGuard({} as any, {} as any));
 
-    expect(router.createUrlTree).toHaveBeenCalledWith(['/']);
-
+    expect(createUrlTree).toHaveBeenCalledWith(['/']);
     expect(result).toBe(homeUrlTree);
   });
 });

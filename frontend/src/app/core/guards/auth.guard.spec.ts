@@ -7,23 +7,22 @@ import { authGuard } from './auth.guard';
 
 describe('authGuard', () => {
   let authService: AuthService;
-  let router: Router;
+  const createUrlTree = vi.fn();
 
   beforeEach(() => {
+    createUrlTree.mockReset();
+
     TestBed.configureTestingModule({
       providers: [
         AuthService,
         {
           provide: Router,
-          useValue: {
-            createUrlTree: vi.fn(),
-          },
+          useValue: { createUrlTree },
         },
       ],
     });
 
     authService = TestBed.inject(AuthService);
-    router = TestBed.inject(Router);
   });
 
   it('should allow authenticated user', () => {
@@ -38,14 +37,12 @@ describe('authGuard', () => {
   });
 
   it('should redirect unauthenticated user to login', () => {
-    const loginUrlTree = {} as any;
-
-    vi.spyOn(router, 'createUrlTree').mockReturnValue(loginUrlTree);
+    const loginUrlTree = {};
+    createUrlTree.mockReturnValue(loginUrlTree);
 
     const result = TestBed.runInInjectionContext(() => authGuard({} as any, {} as any));
 
-    expect(router.createUrlTree).toHaveBeenCalledWith(['/login']);
-
+    expect(createUrlTree).toHaveBeenCalledWith(['/login']);
     expect(result).toBe(loginUrlTree);
   });
 });

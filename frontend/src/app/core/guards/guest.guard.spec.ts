@@ -8,23 +8,22 @@ import { guestGuard } from './guest.guard';
 
 describe('guestGuard', () => {
   let authService: AuthService;
-  let router: Router;
+  const createUrlTree = vi.fn();
 
   beforeEach(() => {
+    createUrlTree.mockReset();
+
     TestBed.configureTestingModule({
       providers: [
         AuthService,
         {
           provide: Router,
-          useValue: {
-            createUrlTree: vi.fn(),
-          },
+          useValue: { createUrlTree },
         },
       ],
     });
 
     authService = TestBed.inject(AuthService);
-    router = TestBed.inject(Router);
   });
 
   it('should allow unauthenticated user', () => {
@@ -34,9 +33,8 @@ describe('guestGuard', () => {
   });
 
   it('should redirect authenticated user to home', () => {
-    const homeUrlTree = {} as any;
-
-    vi.spyOn(router, 'createUrlTree').mockReturnValue(homeUrlTree);
+    const homeUrlTree = {};
+    createUrlTree.mockReturnValue(homeUrlTree);
 
     authService['userSignal'].set({
       id: '1',
@@ -45,8 +43,7 @@ describe('guestGuard', () => {
 
     const result = TestBed.runInInjectionContext(() => guestGuard({} as any, {} as any));
 
-    expect(router.createUrlTree).toHaveBeenCalledWith(['/']);
-
+    expect(createUrlTree).toHaveBeenCalledWith(['/']);
     expect(result).toBe(homeUrlTree);
   });
 });

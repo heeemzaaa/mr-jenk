@@ -22,10 +22,11 @@ describe('authInterceptor', () => {
   let http: HttpClient;
   let httpMock: HttpTestingController;
   let authService: AuthService;
-  let router: Router;
+  const navigate = vi.fn();
 
   beforeEach(() => {
     localStorage.clear();
+    navigate.mockReset();
 
     TestBed.configureTestingModule({
       providers: [
@@ -37,9 +38,7 @@ describe('authInterceptor', () => {
 
         {
           provide: Router,
-          useValue: {
-            navigate: vi.fn(),
-          },
+          useValue: { navigate },
         },
       ],
     });
@@ -48,7 +47,6 @@ describe('authInterceptor', () => {
     httpMock = TestBed.inject(HttpTestingController);
 
     authService = TestBed.inject(AuthService);
-    router = TestBed.inject(Router);
   });
 
   afterEach(() => {
@@ -87,7 +85,6 @@ describe('authInterceptor', () => {
     localStorage.setItem('jwt', 'expired-token');
 
     const logoutSpy = vi.spyOn(authService, 'logout');
-    const navigateSpy = vi.spyOn(router, 'navigate');
 
     http.get('/users/profile').subscribe({
       error: () => {},
@@ -111,7 +108,7 @@ describe('authInterceptor', () => {
 
     expect(logoutSpy).toHaveBeenCalled();
 
-    expect(navigateSpy).toHaveBeenCalledWith([
+    expect(navigate).toHaveBeenCalledWith([
       '/login',
     ]);
   });
@@ -120,7 +117,6 @@ describe('authInterceptor', () => {
     localStorage.setItem('jwt', 'my-jwt-token');
 
     const logoutSpy = vi.spyOn(authService, 'logout');
-    const navigateSpy = vi.spyOn(router, 'navigate');
 
     http.get('/products').subscribe({
       error: () => {},
@@ -144,6 +140,6 @@ describe('authInterceptor', () => {
 
     expect(logoutSpy).not.toHaveBeenCalled();
 
-    expect(navigateSpy).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
   });
 });
