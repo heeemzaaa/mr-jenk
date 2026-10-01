@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;
 
 // test deploy four change the ngrok
-// test again 3
+// test again four
 @SpringBootApplication
 @EnableEurekaServer
 public class DiscoveryServerApplication {
