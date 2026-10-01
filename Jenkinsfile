@@ -7,7 +7,6 @@ pipeline {
         MONGO_IMAGE         = 'mongo:7'
         CI_NETWORK_PREFIX      = "backend-ci-${BUILD_NUMBER}"
         MONGO_CONTAINER_PREFIX = "mongo-${BUILD_NUMBER}"
-        CI_KEYSTORE_PASSWORD = 'changeit-ci'
         DEPLOY_PATH = '/root/mr-jenk'
     }
 
@@ -227,25 +226,24 @@ pipeline {
                             args '-v maven-repo:/root/.m2'
                         }
                     }
-                    environment {
-                        SSL_KEYSTORE_PASSWORD = "${CI_KEYSTORE_PASSWORD}"
-                    }
                     steps {
                         checkout scm
-                        dir('api-gateway') {
-                            sh '''
-                                rm -f src/main/resources/keystore.p12
-                                keytool -genkeypair \
-                                  -alias gateway \
-                                  -keyalg RSA -keysize 2048 \
-                                  -storetype PKCS12 \
-                                  -keystore src/main/resources/keystore.p12 \
-                                  -validity 3650 \
-                                  -dname "CN=localhost, OU=CI, O=Vendify" \
-                                  -storepass "$SSL_KEYSTORE_PASSWORD" \
-                                  -keypass "$SSL_KEYSTORE_PASSWORD"
-                                mvn -B verify
-                            '''
+                        withCredentials([string(credentialsId: 'ci-keystore-password', variable: 'SSL_KEYSTORE_PASSWORD')]) {
+                            dir('api-gateway') {
+                                sh '''
+                                    rm -f src/main/resources/keystore.p12
+                                    keytool -genkeypair \
+                                      -alias gateway \
+                                      -keyalg RSA -keysize 2048 \
+                                      -storetype PKCS12 \
+                                      -keystore src/main/resources/keystore.p12 \
+                                      -validity 3650 \
+                                      -dname "CN=localhost, OU=CI, O=Vendify" \
+                                      -storepass "$SSL_KEYSTORE_PASSWORD" \
+                                      -keypass "$SSL_KEYSTORE_PASSWORD"
+                                    mvn -B verify
+                                '''
+                            }
                         }
                     }
                     post {
@@ -253,6 +251,21 @@ pipeline {
                             junit testResults: 'api-gateway/target/surefire-reports/*.xml', allowEmptyResults: true
                         }
                     }
+                }
+            }
+        }
+
+        stage('Test: Frontend') {
+            agent {
+                docker {
+                    image "${FRONTEND_BUILD_IMAGE}"
+                }
+            }
+            steps {
+                checkout scm
+                dir('frontend') {
+                    sh 'npm ci'
+                    sh 'npm test'
                 }
             }
         }
