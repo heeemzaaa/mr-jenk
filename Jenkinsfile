@@ -270,6 +270,18 @@ pipeline {
                 }
             }
         }
+
+        stage('Verify Deployment') {
+            agent any
+            steps {
+                withCredentials([string(credentialsId: 'deploy-server-host', variable: 'DEPLOY_HOST')]) {
+                    sh '''
+                        curl -f -k https://$DEPLOY_HOST:8443/actuator/health
+                        curl -f http://$DEPLOY_HOST:4200
+                    '''
+                }
+            }
+        }
     }
 }
     
