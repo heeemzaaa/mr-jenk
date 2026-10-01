@@ -8,7 +8,6 @@ pipeline {
         CI_NETWORK_PREFIX      = "backend-ci-${BUILD_NUMBER}"
         MONGO_CONTAINER_PREFIX = "mongo-${BUILD_NUMBER}"
         CI_KEYSTORE_PASSWORD = 'changeit-ci'
-        DEPLOY_HOST = '116.203.41.225'
         DEPLOY_PATH = '/root/mr-jenk'
     }
 
@@ -261,7 +260,10 @@ pipeline {
         stage('Deploy') {
             agent any
             steps {
-                withCredentials([usernamePassword(credentialsId: 'deploy-server-ssh', usernameVariable: 'SSH_USER', passwordVariable: 'SSH_PASS')]) {
+                withCredentials([
+                    usernamePassword(credentialsId: 'deploy-server-ssh', usernameVariable: 'SSH_USER', passwordVariable: 'SSH_PASS'),
+                    string(credentialsId: 'deploy-server-host', variable: 'DEPLOY_HOST')
+                ]) {
                     sh '''
                         sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no "$SSH_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && git pull && docker compose up --build -d"
                     '''
