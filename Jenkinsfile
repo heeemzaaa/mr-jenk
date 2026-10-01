@@ -264,6 +264,14 @@ pipeline {
                     usernamePassword(credentialsId: 'deploy-server-ssh', usernameVariable: 'SSH_USER', passwordVariable: 'SSH_PASS'),
                     string(credentialsId: 'deploy-server-host', variable: 'DEPLOY_HOST')
                 ]) {
+                    script {
+                        env.PREVIOUS_SHA = sh(
+                            script: '''
+                                sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no "$SSH_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && git rev-parse HEAD"
+                            ''',
+                            returnStdout: true
+                        ).trim()
+                    }
                     sh '''
                         sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no "$SSH_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && git pull && docker compose up --build -d"
                     '''
@@ -279,6 +287,23 @@ pipeline {
                         curl -f -k https://$DEPLOY_HOST:8443/actuator/health
                         curl -f http://$DEPLOY_HOST:4200
                     '''
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            script {
+                if (env.PREVIOUS_SHA) {
+                    withCredentials([
+                        usernamePassword(credentialsId: 'deploy-server-ssh', usernameVariable: 'SSH_USER', passwordVariable: 'SSH_PASS'),
+                        string(credentialsId: 'deploy-server-host', variable: 'DEPLOY_HOST')
+                    ]) {
+                        sh '''
+                            sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no "$SSH_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && git reset --hard $PREVIOUS_SHA && docker compose up --build -d"
+                        '''
+                    }
                 }
             }
         }
