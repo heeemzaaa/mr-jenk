@@ -1,0 +1,2 @@
+
+docker run -it --net=host -e NGROK_AUTHTOKEN=$1 ngrok/ngrok:latest http 8085
