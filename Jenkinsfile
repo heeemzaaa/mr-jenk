@@ -8,6 +8,8 @@ pipeline {
         CI_NETWORK_PREFIX      = "backend-ci-${BUILD_NUMBER}"
         MONGO_CONTAINER_PREFIX = "mongo-${BUILD_NUMBER}"
         DEPLOY_PATH = '/root/mr-jenk'
+        // Fail fast on unreachable host and detect dead connections instead of hanging forever
+        SSH_OPTS    = '-o StrictHostKeyChecking=no -o ConnectTimeout=15 -o ServerAliveInterval=30 -o ServerAliveCountMax=4'
     }
 
     stages {
@@ -272,6 +274,9 @@ pipeline {
 
         stage('Deploy') {
             agent any
+            options {
+                timeout(time: 30, unit: 'MINUTES')
+            }
             steps {
                 withCredentials([
                     usernamePassword(credentialsId: 'deploy-server-ssh', usernameVariable: 'SSH_USER', passwordVariable: 'SSH_PASS'),
@@ -280,13 +285,13 @@ pipeline {
                     script {
                         env.PREVIOUS_SHA = sh(
                             script: '''
-                                sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no "$SSH_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && git rev-parse HEAD"
+                                sshpass -p "$SSH_PASS" ssh $SSH_OPTS "$SSH_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && git rev-parse HEAD"
                             ''',
                             returnStdout: true
                         ).trim()
                     }
                     sh '''
-                        sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no "$SSH_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && git pull && docker compose up --build -d"
+                        sshpass -p "$SSH_PASS" ssh $SSH_OPTS "$SSH_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && git pull && docker compose up --build -d"
                     '''
                 }
             }
@@ -323,7 +328,7 @@ pipeline {
                             string(credentialsId: 'deploy-server-host', variable: 'DEPLOY_HOST')
                         ]) {
                             sh '''
-                                sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no "$SSH_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && git reset --hard $PREVIOUS_SHA && docker compose up --build -d"
+                                sshpass -p "$SSH_PASS" ssh $SSH_OPTS "$SSH_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && git reset --hard $PREVIOUS_SHA && docker compose up --build -d"
                             '''
                         }
                     }

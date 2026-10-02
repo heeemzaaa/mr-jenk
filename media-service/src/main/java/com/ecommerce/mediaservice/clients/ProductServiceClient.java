@@ -8,6 +8,7 @@ import com.ecommerce.mediaservice.dtos.Product;
 
 // test three
 // another test here after the fix 1
+// the last test here
 @FeignClient(name = "product-service")
 public interface ProductServiceClient {
     
