@@ -1,256 +1,311 @@
-# buy-01
+# mr-jenk
 
-An end-to-end e-commerce platform built as **Spring Boot microservices** behind an API gateway, with an **Angular** frontend. Users register as **clients** or **sellers** — sellers manage products and their photos, clients browse and view them.
+A **Jenkins CI/CD pipeline** for the [buy-01](#the-application-buy-01) e-commerce platform (Spring Boot microservices + Angular).
 
-[![API Gateway CI](https://github.com/ayoubnachti/buy-01/actions/workflows/api-gateway-ci.yml/badge.svg)](https://github.com/ayoubnachti/buy-01/actions/workflows/api-gateway-ci.yml)
-[![Discovery Server CI](https://github.com/ayoubnachti/buy-01/actions/workflows/discovery-server-ci.yml/badge.svg)](https://github.com/ayoubnachti/buy-01/actions/workflows/discovery-server-ci.yml)
-[![User Service CI](https://github.com/ayoubnachti/buy-01/actions/workflows/user-service-ci.yml/badge.svg)](https://github.com/ayoubnachti/buy-01/actions/workflows/user-service-ci.yml)
-[![Product Service CI](https://github.com/ayoubnachti/buy-01/actions/workflows/product-service-ci.yml/badge.svg)](https://github.com/ayoubnachti/buy-01/actions/workflows/product-service-ci.yml)
-[![Media Service CI](https://github.com/ayoubnachti/buy-01/actions/workflows/media-service-ci.yml/badge.svg)](https://github.com/ayoubnachti/buy-01/actions/workflows/media-service-ci.yml)
-[![Frontend CI](https://github.com/ayoubnachti/buy-01/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/ayoubnachti/buy-01/actions/workflows/frontend-ci.yml)
+Every push to the repository triggers a Jenkins pipeline that **builds** every service, **runs the automated tests**, **deploys** the new version to a remote server, **verifies** that the deployment is healthy, **rolls back** automatically if anything fails, and **emails** the result.
 
 ## Table of contents
 
-- [buy-01](#buy-01)
-  - [Table of contents](#table-of-contents)
-  - [Architecture](#architecture)
-  - [Tech stack](#tech-stack)
-  - [Project structure](#project-structure)
-  - [Services](#services)
-    - [user-service](#user-service)
-    - [product-service](#product-service)
-    - [media-service](#media-service)
-    - [api-gateway](#api-gateway)
-  - [Authentication](#authentication)
-  - [Getting started](#getting-started)
-  - [HTTPS (self-signed, local dev)](#https-self-signed-local-dev)
-  - [Environment variables](#environment-variables)
-  - [Demo data](#demo-data)
-  - [Testing](#testing)
+- [Project goals](#project-goals)
+- [Architecture of the CI/CD setup](#architecture-of-the-cicd-setup)
+- [Pipeline stages](#pipeline-stages)
+- [Rollback strategy](#rollback-strategy)
+- [Notifications](#notifications)
+- [Security](#security)
+- [Setting up Jenkins](#setting-up-jenkins)
+- [Triggering builds automatically (GitHub webhook + ngrok)](#triggering-builds-automatically-github-webhook--ngrok)
+- [Setting up the deployment server](#setting-up-the-deployment-server)
+- [Repository structure](#repository-structure)
+- [The application: buy-01](#the-application-buy-01)
+- [Running the application locally](#running-the-application-locally)
+- [Environment variables](#environment-variables)
 
-## Architecture
+## Project goals
 
-Every request from the browser goes through a single entry point, the **API Gateway**, which validates the JWT and forwards the request to the right backend service. Services find each other through the **Eureka** discovery server rather than hardcoded hosts/ports, and each service owns its own MongoDB database.
+What the subject asks for, and how this project does it:
+
+| Requirement | How it is done |
+|---|---|
+| Set up a Jenkins instance | Custom Jenkins Docker image ([jenkins/Dockerfile](jenkins/Dockerfile)), with Docker, `sshpass` and the required plugins already installed |
+| Build automatically | A declarative [Jenkinsfile](Jenkinsfile) builds the 5 backend services (Maven) in parallel, then builds the Angular frontend (npm) |
+| Run automated tests | JUnit tests for each backend service (with a temporary MongoDB container where needed) and Vitest tests for the frontend. If a test fails, the pipeline stops |
+| Trigger on every commit | A GitHub webhook calls Jenkins on every push. Jenkins runs locally, so it is exposed with ngrok |
+| Automated deployment | Jenkins connects to a remote server (Hetzner) over SSH, pulls the new code and runs `docker compose up --build -d` |
+| Rollback strategy | The commit that was running before the deploy is saved. If the pipeline fails, the server is reset to that commit and redeployed |
+| Notifications | An email is sent on every success or failure |
+| Security | Secrets live in the Jenkins credentials store and never in the repository. Builds run inside throwaway Docker containers |
+
+## Architecture of the CI/CD setup
 
 ```mermaid
 flowchart LR
-    Browser["Angular frontend (4200)"] --> Gateway["API Gateway (8080)"]
+    Dev["Developer"] -->|git push| GitHub
+    GitHub -->|webhook| Ngrok["ngrok tunnel"]
+    Ngrok --> Jenkins["Jenkins (Docker, port 8085)"]
 
-    Gateway -->|"/auth/**, /MyProfile"| User["user-service (8081)"]
-    Gateway -->|"/products/**"| Product["product-service (8082)"]
-    Gateway -->|"/media/**"| Media["media-service (8083)"]
+    Jenkins -->|spawns build/test containers| Docker["Host Docker daemon"]
+    Docker --> Maven["maven:3.9-temurin-17"]
+    Docker --> Node["node:20-alpine"]
+    Docker --> Mongo["mongo:7 (test DBs)"]
 
-    Product -->|"images for a product"| Media
-    Media -->|"ownership check"| Product
-
-    User --> Mongo[("MongoDB (27017)")]
-    Product --> Mongo
-    Media --> Mongo
-    Media --> Cloudinary["Cloudinary (image storage)"]
-
-    User -. registers with .-> Eureka["discovery-server (8761)"]
-    Product -. registers with .-> Eureka
-    Media -. registers with .-> Eureka
-    Gateway -. looks up services via .-> Eureka
+    Jenkins -->|SSH: git pull + docker compose up| Server["Deployment server (Hetzner)"]
+    Jenkins -->|curl health checks| Server
+    Jenkins -->|email| Mail["Notification email"]
 ```
 
-Each service uses its own database inside the same MongoDB instance: `users_db`, `products_db`, `media_db`.
+- Jenkins runs in a container, but it mounts the host's Docker socket (`/var/run/docker.sock`). This lets it start other containers on the host for each stage, so no JDK, Maven or Node has to be installed in the Jenkins image.
+- A named Docker volume (`maven-repo`) caches Maven dependencies between builds, which makes builds much faster.
 
-## Tech stack
+## Pipeline stages
 
-**Backend**
-- Java 17, Spring Boot 4
-- Spring Cloud Gateway (MVC) — routing, JWT validation
-- Spring Cloud Netflix Eureka — service discovery
-- Spring Data MongoDB
-- Spring Security
-- Resilience4j — circuit breaker for the product → media call
-- Cloudinary SDK — image storage for media-service
+The pipeline is declared in [Jenkinsfile](Jenkinsfile) with `agent none`, so each stage chooses its own container.
 
-**Frontend**
-- Angular 21 (standalone components, signals, zoneless change detection)
-- Bootstrap 5
-- Vitest — unit tests
-
-**Infra / tooling**
-- Docker Compose — local orchestration
-- MongoDB 7
-- k6 — load testing (`load-tests/`)
-- GitHub Actions — CI per service
-
-## Project structure
-
-```
-buy-01/
-├── compose.yml                 # orchestrates every service locally
-├── discovery-server/           # Eureka registry
-│   └── src/main/java/com/ecommerce/discoveryserver/
-├── api-gateway/                # single entry point, JWT auth, routing
-│   └── src/main/java/com/ecommerce/apigateway/
-│       ├── config/             # routes, CORS, gateway filters
-│       └── security/           # JWT validation filter
-├── user-service/               # accounts, auth, profile
-│   └── src/main/java/com/ecommerce/userservice/
-│       ├── controller/         # AuthController, ProfileController
-│       ├── service/            # AuthService, JwtService, ProfileService
-│       ├── model/ · repository/
-│       └── config/             # DataSeeder, SecurityConfig
-├── product-service/             # product catalog
-│   └── src/main/java/com/ecommerce/productservice/
-│       ├── controllers/        # ProductController
-│       ├── services/           # ProductService
-│       ├── clients/            # Feign/REST client to media-service
-│       ├── models/ · repositories/
-│       └── security/           # trusts gateway-forwarded user headers
-├── media-service/              # product/profile image storage
-│   └── src/main/java/com/ecommerce/mediaservice/
-│       ├── controllers/        # MediaController
-│       ├── services/           # MediaService (validation, Cloudinary calls)
-│       ├── clients/            # client back to product-service (ownership check)
-│       ├── models/ · repositories/
-│       └── security/
-├── frontend/                   # Angular app
-│   └── src/app/
-│       ├── core/                # guards, interceptors, app-wide services
-│       ├── features/
-│       │   ├── auth/            # login, register
-│       │   ├── products/        # list, detail, form, table row
-│       │   ├── media/           # <app-upload> picker (components/services/models/utils)
-│       │   ├── profile/         # account settings + avatar
-│       │   └── seller-dashboard/
-│       └── shared/               # reusable components (carousel, modal, toasts, ...)
-├── load-tests/                  # k6 scripts
-└── .github/workflows/           # one CI pipeline per service
+```mermaid
+flowchart LR
+    A["Build: Backend<br/>(5 in parallel)"] --> B["Build: Frontend"]
+    B --> C["Test: Backend<br/>(5 in parallel)"]
+    C --> D["Test: Frontend"]
+    D --> E["Deploy"]
+    E --> F["Verify Deployment"]
+    F -->|success| G["Email: SUCCESS"]
+    A & B & C & D & E & F -.->|any failure| H["Email: FAILED + Rollback"]
 ```
 
-## Services
+### 1. Build: Backend Services (parallel)
+`discovery-server`, `user-service`, `product-service`, `media-service` and `api-gateway` are built at the same time, each in a `maven:3.9-eclipse-temurin-17` container:
+```bash
+mvn -B -DskipTests clean package
+```
+
+### 2. Build: Frontend
+In a `node:20-alpine` container:
+```bash
+npm ci
+npm run build
+```
+
+### 3. Test: Backend Services (parallel)
+- **discovery-server**: `mvn -B verify` directly. It does not use a database.
+- **user / product / media services**: these need MongoDB. For each one the pipeline:
+  1. creates a Docker network just for this build (`backend-ci-<BUILD_NUMBER>-<service>`),
+  2. starts a temporary `mongo:7` container on that network,
+  3. runs `mvn -B clean verify` in a Maven container on the same network, with `MONGODB_URI` pointing to that Mongo container,
+  4. removes the container and the network, even if the tests fail (`try/finally`).
+
+  The names include the build number, so two builds running at the same time do not clash.
+- **api-gateway**: it serves HTTPS, so it needs a keystore to start. The pipeline creates a temporary self-signed `keystore.p12` with `keytool`, using a password from Jenkins credentials (`ci-keystore-password`), and then runs `mvn -B verify`.
+
+JUnit reports (`target/surefire-reports/*.xml`) are published for every service, so test results show up in the Jenkins UI (and Blue Ocean).
+
+### 4. Test: Frontend
+In a `node:20-alpine` container:
+```bash
+npm ci
+npm test        # Vitest
+```
+
+### 5. Deploy
+Jenkins connects to the deployment server over SSH (`sshpass` + credentials) and:
+1. saves the commit currently deployed (`git rev-parse HEAD`) as `PREVIOUS_SHA`,
+2. runs `cd /root/mr-jenk && git pull && docker compose up --build -d`.
+
+### 6. Verify Deployment
+A container that is running is not always a working app, so the pipeline checks the live endpoints:
+```bash
+curl -f -k https://$DEPLOY_HOST:8443/actuator/health   # API gateway (self-signed TLS)
+curl -f    http://$DEPLOY_HOST:4200                    # Angular frontend
+```
+If either check fails, the stage fails. This triggers the rollback.
+
+## Rollback strategy
+
+Rollback is in the pipeline's `post { failure { ... } }` block:
+
+1. Before deploying, the **Deploy** stage saves the commit SHA that the server is running (`PREVIOUS_SHA`).
+2. If any later step fails (for example the deploy itself or the health check), Jenkins connects to the server again and runs:
+   ```bash
+   git reset --hard $PREVIOUS_SHA && docker compose up --build -d
+   ```
+3. The server goes back to the last known-good version.
+
+If the failure happens **before** the Deploy stage (a build or test failure), `PREVIOUS_SHA` is not set. In that case nothing is rolled back, because nothing on the server was changed: broken code never reaches production.
+
+## Notifications
+
+The pipeline uses the Jenkins **Mailer** plugin to send an email after every run:
+
+- **SUCCESS**: `SUCCESS: <job> #<build>` with a link to the build.
+- **FAILED**: `FAILED: <job> #<build>` with a link to the build logs. This email is sent before the rollback runs.
+
+SMTP is configured in *Manage Jenkins → System → E-mail Notification* (for example Gmail SMTP with an app password).
+
+## Security
+
+- **No secrets in Git.** Everything sensitive is stored in the Jenkins credentials store and injected with `withCredentials`, so Jenkins hides the values in the console output:
+
+  | Credential ID | Type | Used for |
+  |---|---|---|
+  | `deploy-server-ssh` | Username + password | SSH login to the deployment server |
+  | `deploy-server-host` | Secret text | IP or hostname of the deployment server |
+  | `ci-keystore-password` | Secret text | Password for the temporary CI keystore of the api-gateway |
+
+- The application's own secrets (`JWT_SECRET`, `CLOUDINARY_URL`, keystore password…) are kept in a `.env` file on the server. It is ignored by Git (see [.gitignore](.gitignore)), and [.env.example](.env.example) shows the variables it needs.
+- **Isolated builds.** Each build and test runs in a fresh container on its own Docker network, which is removed afterwards.
+- **Jenkins access.** Jenkins is protected by its own admin login. Use *Manage Jenkins → Security* to restrict permissions per user, for example with matrix-based security.
+
+## Setting up Jenkins
+
+The Jenkins image is defined in [jenkins/Dockerfile](jenkins/Dockerfile):
+
+- base image: `jenkins/jenkins:lts-jdk21`
+- extra packages: `docker.io` (to run the build containers) and `sshpass` (for the deploy over SSH)
+- plugins ([jenkins/plugins.txt](jenkins/plugins.txt)): `blueocean`, `docker-workflow`, `junit`, `mailer`
+
+Build and start it with [jenkins/run_jenkins.sh](jenkins/run_jenkins.sh):
+
+```bash
+cd jenkins
+./run_jenkins.sh
+```
+
+which runs:
+
+```bash
+docker build -t my-jenkins .
+docker run -d --name jenkins \
+  -p 8085:8080 -p 50000:50000 \
+  -v jenkins_home:/var/jenkins_home \
+  -v $DOCKER_SOCK:/var/run/docker.sock \
+  -u root my-jenkins
+```
+
+On this machine `docker` is actually **Podman**, so the Docker socket is `/run/user/<uid>/podman/podman.sock` (not `/var/run/docker.sock`). The script starts it with `systemctl --user start podman.socket` and mounts it into Jenkins as `/var/run/docker.sock`, so the pipeline can run `docker` commands.
+
+Then:
+
+1. Open http://localhost:8085 and unlock Jenkins with the password from
+   `docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword`.
+2. Create an admin user.
+3. Add the three credentials from the [Security](#security) table.
+4. Configure SMTP for email notifications.
+5. Create a **Pipeline** job (or Multibranch Pipeline) with **Pipeline script from SCM** that points to this repository and uses `Jenkinsfile`.
+6. Enable **GitHub hook trigger for GITScm polling** in the job's build triggers.
+
+## Triggering builds automatically (GitHub webhook + ngrok)
+
+Jenkins runs on a local machine, so GitHub cannot reach it directly. [jenkins/run_ngrok.sh](jenkins/run_ngrok.sh) opens a public tunnel to it:
+
+```bash
+./jenkins/run_ngrok.sh <NGROK_AUTHTOKEN>
+```
+
+In the GitHub repository, go to *Settings → Webhooks → Add webhook* and set:
+
+- **Payload URL**: `https://<your-ngrok-subdomain>.ngrok-free.app/github-webhook/`
+- **Content type**: `application/json`
+- **Events**: *Just the push event*
+
+After that, every `git push` starts a new pipeline run.
+
+## Setting up the deployment server
+
+On the target server (a Hetzner VPS in our case):
+
+1. Install Docker, Docker Compose and Git.
+2. Clone the repository to `/root/mr-jenk` (the `DEPLOY_PATH` in the Jenkinsfile).
+3. Create `/root/mr-jenk/.env` from [.env.example](.env.example) and fill in the real secrets.
+4. Put `keystore.p12` in `api-gateway/src/main/resources/` (see [HTTPS](#https-api-gateway)).
+5. Allow SSH login for the user stored in `deploy-server-ssh`, and open ports `8443` (gateway) and `4200` (frontend).
+
+## Repository structure
+
+```
+mr-jenk/
+├── Jenkinsfile              # the CI/CD pipeline
+├── jenkins/
+│   ├── Dockerfile           # Jenkins image with Docker CLI + sshpass + plugins
+│   ├── plugins.txt          # blueocean, docker-workflow, junit, mailer
+│   ├── run_jenkins.sh       # build + run the Jenkins container
+│   └── run_ngrok.sh         # expose Jenkins to GitHub webhooks
+├── compose.yml              # runs the full buy-01 stack (used for deployment)
+├── .env.example             # template for the app's secrets
+├── discovery-server/        # Eureka registry
+├── api-gateway/             # entry point, JWT validation, HTTPS
+├── user-service/            # accounts, auth, profile
+├── product-service/         # product catalog
+├── media-service/           # images (Cloudinary)
+└── frontend/                # Angular app
+```
+
+---
+
+## The application: buy-01
+
+The pipeline builds, tests and deploys **buy-01**, an e-commerce platform. Users sign up as **clients** or **sellers**. Sellers manage their products and product images, and clients browse them.
+
+```mermaid
+flowchart LR
+    Browser["Angular frontend (4200)"] --> Gateway["API Gateway (8443, HTTPS)"]
+    Gateway -->|"/auth/**, /MyProfile"| User["user-service"]
+    Gateway -->|"/products/**"| Product["product-service"]
+    Gateway -->|"/media/**"| Media["media-service"]
+    Product <--> Media
+    User & Product & Media --> Mongo[("MongoDB")]
+    Media --> Cloudinary["Cloudinary"]
+    User & Product & Media & Gateway -. register .-> Eureka["discovery-server (8761)"]
+```
 
 | Service | Port | Responsibility |
 |---|---|---|
-| `discovery-server` | 8761 | Eureka registry all other services register with |
-| `api-gateway` | 8080 | Single public entry point; validates JWTs and routes to the right service |
-| `user-service` | 8081 | Registration, login, profile |
-| `product-service` | 8082 | Product CRUD, ownership checks, pagination |
-| `media-service` | 8083 | Image upload/delete/lookup, Cloudinary storage |
-| `frontend` | 4200 | Angular SPA |
-| `mongodb` | 27017 | One shared instance, one database per service |
+| `discovery-server` | 8761 | Eureka registry |
+| `api-gateway` | 8443 | Single public entry point over HTTPS; checks JWTs and forwards `X-User-Id` / `X-User-Role` to the services |
+| `user-service` | 8081 (internal) | Registration, login (issues the JWT), profile |
+| `product-service` | 8082 (internal) | Product CRUD and ownership checks |
+| `media-service` | 8083 (internal) | Image upload and validation, stored on Cloudinary |
+| `frontend` | 4200 | Angular 21 SPA |
+| `mongodb` | 27017 (internal) | One database per service: `users_db`, `products_db`, `media_db` |
 
-### user-service
-- `POST /auth/register`, `POST /auth/login`
-- `GET /MyProfile`, `PUT /MyProfile`
-- Issues the JWT on login; passwords hashed with Spring Security's `PasswordEncoder`.
+**Tech stack:** Java 17, Spring Boot, Spring Cloud Gateway, Eureka, Spring Security, MongoDB 7, Resilience4j, Cloudinary · Angular 21, Bootstrap 5, Vitest · Docker Compose · Jenkins.
 
-### product-service
-- `GET /products`, `GET /products/{id}`, `POST /products`, `PUT /products/{id}`, `DELETE /products/{id}`
-- Fetches each product's image URLs from media-service on read, through a Resilience4j circuit breaker (falls back to an empty image list if media-service is unavailable).
-
-### media-service
-- `POST /media/images`, `PUT /media/images`, `DELETE /media/images`, `GET /media/images`, `GET /media/images/{productId}`
-- Validates uploads (image type, size, max count per target), stores/removes the file on Cloudinary, and keeps a `Media` record per uploaded image in MongoDB.
-- Confirms the caller actually owns the product before allowing a change, by calling back into product-service.
-
-### api-gateway
-- Routes `/auth/**` and `/MyProfile` → user-service, `/products/**` → product-service, `/media/**` → media-service.
-- Validates the `Authorization` bearer JWT and forwards the authenticated user's id/role downstream as `X-User-Id` / `X-User-Role` headers, so individual services never re-verify the JWT themselves.
-
-## Authentication
-
-1. The client logs in through `user-service`, which returns a signed JWT.
-2. The frontend attaches that JWT as a `Bearer` token on every request (see `core/interceptors/auth.interceptor.ts`).
-3. `api-gateway` validates the token and, on success, injects `X-User-Id` and `X-User-Role` headers before forwarding the request.
-4. `product-service` and `media-service` never see the JWT — they trust those two headers (set only by the gateway) to populate the security context for that request.
-
-## Getting started
-
-**Prerequisites:** Docker and Docker Compose.
+## Running the application locally
 
 ```bash
-git clone https://github.com/ayoubnachti/buy-01.git
-cd buy-01
+cp .env.example .env      # then fill in JWT_SECRET, CLOUDINARY_URL, ...
 docker compose up --build
 ```
 
-This starts, in order: `mongodb` → `discovery-server` → `user-service` / `product-service` / `media-service` → `api-gateway` → `frontend`.
-
-Once healthy:
 - Frontend: http://localhost:4200
-- API Gateway: http://localhost:8080
+- API gateway: https://localhost:8443 (self-signed certificate)
 - Eureka dashboard: http://localhost:8761
 
-To run a single backend service outside Docker (e.g. for debugging), each one is a standalone Maven project:
+Tests, without Jenkins:
 
 ```bash
-cd product-service
-./mvnw spring-boot:run
+cd <service> && ./mvnw test     # backend (user/product/media services need MongoDB)
+cd frontend && npm test         # frontend
 ```
 
-## HTTPS (self-signed, local dev)
+### HTTPS (api-gateway)
 
-`api-gateway` serves over HTTPS on port `8443` using a self-signed certificate —
-this is the only service with TLS; every other service stays on plain HTTP
-behind it, since nothing outside the Docker network can reach them directly
-(only `gateway:8443` and `discovery:8761` are exposed to the host).
-
-### Generating the keystore (already done once — regenerate if needed)
+The gateway serves HTTPS with a self-signed PKCS12 keystore. Generate it with:
 
 ```bash
-keytool -genkeypair \
-  -alias gateway \
-  -keyalg RSA \
-  -keysize 2048 \
-  -storetype PKCS12 \
-  -keystore keystore.p12 \
-  -validity 3650 \
-  -dname "CN=localhost, OU=Dev, O=Vendify" \
-  -storepass changeit \
-  -keypass changeit
+keytool -genkeypair -alias gateway -keyalg RSA -keysize 2048 \
+  -storetype PKCS12 -keystore api-gateway/src/main/resources/keystore.p12 \
+  -validity 3650 -dname "CN=localhost, OU=Dev, O=Vendify" \
+  -storepass changeit -keypass changeit
 ```
 
-Notes on the flags:
-- `-storepass` / `-keypass` must be **identical** for a PKCS12 keystore —
-  the format doesn't support a separate per-entry key password the way
-  older JKS keystores did. `keytool` will warn (or reject) if they differ.
-- `-dname "CN=localhost, ..."` sets all the identity fields non-interactively
-  in one go — omit it and `keytool` prompts for each field one at a time,
-  plus a yes/no confirmation, which is fine by hand but not reproducible
-  in a script or a teammate following these instructions blind.
-- If you're on **Windows using Git Bash**, this command has an advantage
-  worth knowing about: `openssl`'s equivalent needs a `-subj` value starting
-  with `/` (e.g. `/CN=localhost`), which Git Bash's automatic Unix-path
-  conversion mangles before `openssl` ever sees it. `keytool`'s `-dname`
-  value has no leading `/`, so it isn't affected by that conversion at all.
-
-Update `SSL_KEYSTORE_PASSWORD` in `.env` to match `-storepass` if you
-change it from `changeit`, and `SSL_KEYSTORE_PATH` if you move the file
-somewhere other than the default `classpath:keystore.p12`.
-
-Place `keystore.p12` at `api-gateway/src/main/resources/keystore.p12` —
-Maven packages it into the built JAR from there, no separate volume
-mount needed for the default classpath-based setup.
+`-storepass` and `-keypass` must be the same value, and it must match `SSL_KEYSTORE_PASSWORD` in `.env`.
 
 ## Environment variables
 
-| Variable | Used by | Default | Notes |
-|---|---|---|---|
-| `MONGODB_URI` | user/product/media-service | `mongodb://localhost:27017/<service>_db` | Set per-service in `compose.yml` |
-| `EUREKA_CLIENT_SERVICEURL_DEFAULTZONE` | all services | `http://localhost:8761/eureka/` | Points every service at the discovery server |
-| `JWT_SECRET` | user-service, api-gateway | a dev default in `application.*` | Must match between the two — override in production |
-| `SSL_KEYSTORE_PATH` | api-gateway | `classpath:keystore.p12` | See [HTTPS](#https-self-signed-local-dev) |
-| `SSL_KEYSTORE_PASSWORD` | api-gateway | `changeit` | Must match the `-storepass` used to generate `keystore.p12` |
-| `CLOUDINARY_URL` | media-service | *(required, no default)* | Set in `media-service/.env` (not committed); get it from your Cloudinary dashboard |
-| `CORS_ALLOWED_ORIGIN` | api-gateway | `http://localhost:4200` | Frontend origin allowed through CORS |
-
-## Demo data
-
-On first boot with an empty database, each service seeds a bit of sample data:
-- `user-service`: two demo client accounts (`ayoub@gmail.com` / `Bob@gmail.com`, password `12345678`).
-- `product-service`: four demo products.
-
-Register a new account with the **seller** role from the frontend to try the seller dashboard (product create/edit/delete, image upload).
-
-## Testing
-
-- Backend: each service has its own JUnit test suite — `./mvnw test` from inside that service's folder.
-- Frontend: `cd frontend && npm test` (Vitest).
-- Load testing: `./load-tests/run-load-test.sh` runs the k6 script in `load-tests/seller-load-test.js` against the local stack (requires Docker; needs the stack already running).
-- CI: every push/PR runs the matching workflow in `.github/workflows/` for whichever service changed.
+| Variable | Used by | Notes |
+|---|---|---|
+| `EUREKA_CLIENT_SERVICEURL_DEFAULTZONE` | all services | `http://discovery-server:8761/eureka` |
+| `JWT_SECRET` | user-service, api-gateway | Must be the same in both. Generate with `openssl rand -base64 32` |
+| `SSL_KEYSTORE_PATH` | api-gateway | Default `classpath:keystore.p12` |
+| `SSL_KEYSTORE_PASSWORD` | api-gateway | Must match the keystore's password |
+| `CORS_ALLOWED_ORIGIN` | api-gateway | Frontend origin, e.g. `http://localhost:4200` |
+| `USER_MONGODB_URI` / `PRODUCT_MONGODB_URI` / `MEDIA_MONGODB_URI` | each service | One database per service |
+| `CLOUDINARY_URL` | media-service | Required. Get it from the Cloudinary dashboard |
