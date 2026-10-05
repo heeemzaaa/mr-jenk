@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -57,7 +56,7 @@ class MediaServiceTest {
                 () -> mediaService.saveMedia(request, null)
         );
     }
-
+    //test audit 5
     @Test
     void shouldRejectSaveWhenImagesAreEmpty() {
 
