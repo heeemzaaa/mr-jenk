@@ -140,7 +140,7 @@ pipeline {
                                         "--network ${network} " +
                                         "-e MONGODB_URI=mongodb://${mongoName}:27017/users_db " +
                                         "-v maven-repo:/root/.m2"
-                                    ) {
+                                    ) {200
                                         dir('user-service') {
                                             sh 'mvn -B clean verify'
                                         }
