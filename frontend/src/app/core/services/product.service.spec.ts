@@ -61,6 +61,7 @@ describe('ProductService', () => {
     });
   });
 
+  // test audit 1
   it('propagates an error when the request fails', () => {
     let errored = false;
 
